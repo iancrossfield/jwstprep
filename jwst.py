@@ -10,7 +10,8 @@ import analysis as an  # just for constants
 import tess_yield as ty
 
 _modulepath =  os.path.split(__file__)[0]
-
+if _modulepath=='': _modulepath = '.'
+ 
 #_nexsciPlanetTable = os.path.expanduser('~/proj/jwst/go1/playground/nexsci_planets_20180123_ed.csv')
 _nexsciPlanetTable = _modulepath + '/nexsci_planets_20180123_ed.csv'
 
