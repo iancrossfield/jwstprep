@@ -11,7 +11,7 @@ import tess_yield as ty
 
 _modulepath =  os.path.split(__file__)[0]
 if _modulepath=='': _modulepath = '.'
- 
+
 #_nexsciPlanetTable = os.path.expanduser('~/proj/jwst/go1/playground/nexsci_planets_20180123_ed.csv')
 _nexsciPlanetTable = _modulepath + '/nexsci_planets_20180123_ed.csv'
 
@@ -43,7 +43,7 @@ _nexsciPlanetTable = _modulepath + '/nexsci_planets_20180123_ed.csv'
 
 """
 
-def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS', subarray=None, _modelspectrum=None, modelwave='um', ntransits=1, noise_floor=0., refband='k', plotres=30, mrmode='weiss2016', _outputpath='.', retpandexo=True):
+def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS', subarray=None, _modelspectrum=None, modelwave='um', ntransits=1, noise_floor=0., refband='k', plotres=30, mrmode='weiss2016', _outputpath='.', retpandexo=True, reddict=False):
     """Run a simulation of PandExo -- and avoid messing with scripts.
     
     INPUTS:
@@ -104,6 +104,10 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
      retpandexo : bool
         Whether to also return pandexo 'results' dictionary.
 
+     retdict : bool
+        Whether to also return the exo_dict and inst_dict inputs used
+        to run PandExo (mainly for debugging/troubleshooting)
+
     :EXAMPLE:
       ::
 
@@ -125,6 +129,8 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
       Phase curve mode.
 
       User-specified planet parameters
+
+      Modern error handling (instead of just crashing)
 
     """
     # 2018-01-26 11:59 IJMC: Created
@@ -235,11 +241,17 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
 
     x,y, e = jpi.jwst_1d_spec(result, R=plotres, model=True, plot=False) #, x_range=[.8,1.28]) # num_tran=10
 
+    # Prepare dictionary for returning to user:
+    
     ret = dict(wavelength=x, spectrum=y, uspectrum=e)
     if retpandexo:
         ret['result'] = result
         ret['outputfile'] = _outputpath + outputfilename
     
+    if reddict:
+        ret['exo_dict'] = exo_dict
+        ret['inst_dict'] = inst_dict
+
     return ret
 
     
