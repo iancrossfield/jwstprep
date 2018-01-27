@@ -14,9 +14,16 @@
 
   - Python : pandas, numpy, pickle, os
 
-  - Other : PandExo:
+  - Other : 
+       - PandExo:
             - https://natashabatalha.github.io/PandExo/
             - https://github.com/natashabatalha/PandExo/
+            - https://pypi.python.org/pypi/pandeia.engine/
+
+       - Pandeia:
+            - engine v.1.2.1 -- https://pypi.python.org/pypi/pandeia.engine/
+            - data v.1.2 -- http://ssb.stsci.edu/pandeia/engine/1.2/pandeia_data-1.2.tar.gz
+            
 
   - IJMC's :
            - analysis (just for constants)
