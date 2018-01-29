@@ -4,11 +4,11 @@
 
  :FUNCTIONS:
 
-  :func:`run_pandexo` -- Run a simulation of PandExo and avoid messing
-                         with scripts.
+  :func:`run_pandexo` 
+          Run a simulation of PandExo and avoid messing with scripts.
 
-  :func:`loadplanets` -- Load the NASA Exoplanet Archive's list of
-                         exoplanets & their properties.
+  :func:`loadplanets` 
+         Load the NASA Exoplanet Archive's list of exoplanets & their properties.
 
  :DEPENDENCIES:
 
