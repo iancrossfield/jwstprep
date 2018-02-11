@@ -118,7 +118,7 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
 
        py.figure()
        py.plot(out['result']['OriginalInput']['model_wave'], 1e6*out['result']['OriginalInput']['model_spec'], '-r')
-       py.errorbar(out['wavelength'][0], 1e6*out['spectrum'][0], 1e6*out['uspectrum'][0], fmt='.k', elinewidth=2)
+       py.errorbar(out['wavelength'][0], 1e6*out['spectrum'][0], 1e6*out['uspectrum'][0], fmt='.k', elinewidth=2, mew=2)
        py.ylabel('Depth [ppm]', fontsize=20)
        py.xlabel('Wavelength' , fontsize=20)
        py.minorticks_on()
@@ -186,8 +186,9 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
     exo_dict['observation']['sat_level'] = 80                  #saturation level in percent of full well
     exo_dict['observation']['sat_unit'] = '%'                  # other option = 'e' for electrons
     exo_dict['observation']['noccultations'] = ntransits  
-    exo_dict['observation']['baseline'] = 4.0*60.0*60.0        #time spent observing out of transit, make sure to speciy units
-    exo_dict['observation']['baseline_unit'] = 'total'         #total obersving time, other option 'frac' = in/out
+    # 2018-02-11 16:03 IJMC: Changed from 4.0*60.0*60.0/'total':
+    exo_dict['observation']['baseline'] = 1.0
+    exo_dict['observation']['baseline_unit'] = 'frac'         #total obersving time, other option 'frac' = in/out
     exo_dict['observation']['noise_floor'] = noise_floor  
 
     exo_dict['star']['type'] = 'phoenix'     
@@ -222,16 +223,16 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
     exo_dict['planet']['radius'] = float(planet.pl_radj)
     exo_dict['planet']['r_unit'] = 'R_jup'            
     exo_dict['planet']['i']       = float(planet.pl_orbincl)             
-    exo_dict['planet']['ars']     = float((planet.pl_orbsmax*an.AU) / (planet.st_rad*an.rsun))
+    #exo_dict['planet']['ars']     = float((planet.pl_orbsmax*an.AU) / (planet.st_rad*an.rsun))
     exo_dict['planet']['period']  = float(planet.pl_orbper)                  
 
 
     # Now load in the instrument:
     inst_dict = jdi.load_mode_dict(instrument)
     if subarray is not None: inst_dict['configuration']['detector']['subarray']     = subarray   
-    inst_dict['configuration']['detector']['nsamp']        = None  
-    inst_dict['configuration']['detector']['samp_seq']     = None  
-
+    ## 2018-02-11 15:51 IJMC: Commented out:
+    #inst_dict['configuration']['detector']['nsamp']        = None  
+    #inst_dict['configuration']['detector']['samp_seq']     = None  
 
 
     result = jdi.run_pandexo(exo_dict, inst_dict, output_file=_outputpath + outputfilename)
@@ -243,7 +244,7 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
 
     # Prepare dictionary for returning to user:
     
-    ret = dict(wavelength=x, spectrum=y, uspectrum=e)
+    ret = dict(wavelength=x, spectrum=y, uspectrum=e, planet=planet)
     if retpandexo:
         ret['result'] = result
         ret['outputfile'] = _outputpath + outputfilename
