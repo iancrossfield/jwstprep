@@ -1,8 +1,11 @@
-from pylab import *
+#from pylab import *
 import pandas as pd
 import os
 import pdb
+import ephem
+import numpy as np
 
+import observing as obs
 import analysis as an
 
 _tessdata = os.path.expanduser('~/docs/papers/contributing/k2_catalog_c0-4/paper/')
@@ -73,11 +76,20 @@ def tess_table(_tessfn=_tessdata + 'Sullivan+2015.csv'):
     if not 'teq' in colnames:
         tess['Teq'] = 250 * tess['S/SEarth']**0.25
     tess['transitdepth'] = ((tess.Rplanet * an.rearth) / (tess.Rstar * an.rsun))**2
-    tess['T14'] = (tess.P / np.pi) * np.arcsin((tess.Rstar * an.rsun) / (tess.a * an.AU) * np.sqrt((1 - tess.transitdepth**0.5)**2 - 0.5**2))
+    tess['b'] = 0.5
+    tess['T14'] = (tess.P / np.pi) * np.arcsin((tess.Rstar * an.rsun) / (tess.a * an.AU) * np.sqrt((1 - tess.transitdepth**0.5)**2 - tess.b**2))
 
+    coords = []
+    for pair in zip(tess.RA, tess.Dec):
+        coords.append(ephem.Ecliptic(ephem.Equatorial(obs.hms(pair[0], output_string=True), obs.dms(pair[1], output_string=True))))
+    tess['ec_lat'] = [coord.lat*180/np.pi for coord in coords]
+    tess['ec_lon'] = [coord.lon*180/np.pi for coord in coords]
+    
+
+    
     return tess
 
-def atmoparams(planetTable=None, lam=None, MMW=None, mh=None, **k2):
+def atmoparams(planetTable=None, lam=None, MMW=None, mh=None, scaleheightarea_multiplier=5, **k2):
     """Compute atmospheric parameters for a table of planets.
 
     Necessary columns in planetTable:
@@ -86,6 +98,8 @@ def atmoparams(planetTable=None, lam=None, MMW=None, mh=None, **k2):
        Teq  
        Rstar   - in R_Sun
        Teff
+
+    scaleheightarea_multiplier -- defaults to '5', which is way too optimistic.
 
     If it lacks a column "MMW" [Mean Molecular Weight, in amu] we
     naively try to interpolate based on planet mass and/or radius.
@@ -114,7 +128,7 @@ def atmoparams(planetTable=None, lam=None, MMW=None, mh=None, **k2):
     planetTable['g_mks'] = an.G * an.mearth/an.rearth**2 * (planetTable.Mplanet / planetTable.Rplanet**2)
     planetTable['H_mks'] = (an.k * planetTable.Teq) / (planetTable.MMW / 6e26 * planetTable.g_mks)
     planetTable['scaleheightarea'] = planetTable.H_mks * (planetTable.Rplanet * an.rearth) / (planetTable.Rstar * an.rsun)**2
-    planetTable['SHA_multiplier'] = 5.
+    planetTable['SHA_multiplier'] = scaleheightarea_multiplier
     planetTable['transmission_amplitude'] = planetTable.SHA_multiplier * planetTable.scaleheightarea
     
     if lam is not None:
@@ -181,6 +195,7 @@ def estimatePlanetParams(teff, rstar, per, a, rp, redist=0.3, ab=0.2, mrmode='wo
 
     wolfgang2016
     weiss2016
+    lissauer2011
 
     TO-DO: use composition models to set minimum allowable mass
     """
@@ -191,12 +206,14 @@ def estimatePlanetParams(teff, rstar, per, a, rp, redist=0.3, ab=0.2, mrmode='wo
         mp0 = c*rp**gamma
         u_mp0 = np.sqrt(sm1**2 + beta*(rp-1))
         mp = np.random.normal(mp0, u_mp0)
-    if mrmode.lower()=='weiss2016':
+    elif mrmode.lower()=='weiss2016':
         ind = rp > 1.5
         mp1 = 3.53* rp**0.60
         mp2 = (1.65 + 3.69 * rp) * (1.65 + 3.69 * 1.5) * (1.333*3.14*(1.5*6.378e6)**3)/5.97e21  # radius & mass of earth
         mp = 0. + mp2
         mp[ind] = mp1[ind]
+    elif mrmode.lower()=='lissauer2011':
+        mp = rp**2.06
         
     mp[mp<0] = 0.001  # minimum allowable mass
     res = pd.DataFrame(dict(per=per, Rplanet=rp))
@@ -207,3 +224,25 @@ def estimatePlanetParams(teff, rstar, per, a, rp, redist=0.3, ab=0.2, mrmode='wo
     res['Teff'] = teff
     res['Rstar'] = rstar
     return res
+
+
+def getTESScoverage(eclat, eclong):
+    skycoverages = np.array([(78, 351), (65, 54), (7, 27), (0, 0)])
+    np.abs(eclat)
+    skycoveragebin = (np.abs(eclat) >=skycoverages[:,0]).nonzero()[0][0]
+    duration = skycoverages[skycoveragebin, 1]
+    return duration
+
+def getTESSprecision(imag):
+    """Return TESS photometric precision in a one-hour bin.
+
+    From Ricker et al. (2014), Fig. 8"""
+    # 2018-02-20 16:46 IJMC: Created
+    if not hasattr(imag, '__iter__'):
+        imag = np.array([imag]).squeeze()
+        
+    skynoise = 10 * 10**((imag-8.25)/2.6)
+    sysnoise = 60
+    starnoise = 60 * 10**((imag - 8) / 4.7)
+    noise = np.sqrt(skynoise**2 + sysnoise**2 + starnoise**2)
+    return noise / 1e6

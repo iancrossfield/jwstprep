@@ -43,7 +43,7 @@ _nexsciPlanetTable = _modulepath + '/nexsci_planets_20180123_ed.csv'
 
 """
 
-def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS', subarray=None, _modelspectrum=None, modelwave='um', ntransits=1, noise_floor=0., refband='k', plotres=30, mrmode='weiss2016', _outputpath='.', retpandexo=True, reddict=False):
+def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS', subarray=None, _modelspectrum=None, modelwave='um', ntransits=1, noise_floor=0., refband='k', plotres=30, mrmode='weiss2016', _outputpath='./', retpandexo=True, retdict=True):
     """Run a simulation of PandExo -- and avoid messing with scripts.
     
     INPUTS:
@@ -94,6 +94,10 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
         'j' or 'h' or 'k' for stellar flux.  Magnitude is read from
         table of planet objects.
  
+     baseline : scalar
+        Total duration of observation, in seconds. If None, then
+        defaults to twice the transit duration.
+
      plotres : int
         Final spectral resolution for returned simulated spectrum.
  
@@ -187,8 +191,6 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
     exo_dict['observation']['sat_unit'] = '%'                  # other option = 'e' for electrons
     exo_dict['observation']['noccultations'] = ntransits  
     # 2018-02-11 16:03 IJMC: Changed from 4.0*60.0*60.0/'total':
-    exo_dict['observation']['baseline'] = 1.0
-    exo_dict['observation']['baseline_unit'] = 'frac'         #total obersving time, other option 'frac' = in/out
     exo_dict['observation']['noise_floor'] = noise_floor  
 
     exo_dict['star']['type'] = 'phoenix'     
@@ -219,6 +221,11 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
     exo_dict['planet']['transit_duration']      = float(planet.pl_trandur*24*3600.)
     exo_dict['planet']['td_unit'] = 's'      
 
+    if baseline is None:
+        baseline = exo_dict['planet']['transit_duration']
+    exo_dict['observation']['baseline'] = baseline
+    exo_dict['observation']['baseline_unit'] = 'total'  
+    
     exo_dict['planet']['temp'] = float(planet.Teq)
     exo_dict['planet']['radius'] = float(planet.pl_radj)
     exo_dict['planet']['r_unit'] = 'R_jup'            
@@ -226,6 +233,7 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
     #exo_dict['planet']['ars']     = float((planet.pl_orbsmax*an.AU) / (planet.st_rad*an.rsun))
     exo_dict['planet']['period']  = float(planet.pl_orbper)                  
 
+    
 
     # Now load in the instrument:
     inst_dict = jdi.load_mode_dict(instrument)
@@ -235,7 +243,8 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
     #inst_dict['configuration']['detector']['samp_seq']     = None  
 
 
-    result = jdi.run_pandexo(exo_dict, inst_dict, output_file=_outputpath + outputfilename)
+    output_file = _outputpath + outputfilename
+    result = jdi.run_pandexo(exo_dict, inst_dict, output_file=output_file)
     if not np.isfinite([result['timing'][key] for key in result['timing'].keys()]).all():
         print "Something went wrong with simulation. Maybe star is too bright? Bombing out."
         stopp
@@ -245,11 +254,20 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
     # Prepare dictionary for returning to user:
     
     ret = dict(wavelength=x, spectrum=y, uspectrum=e, planet=planet)
-    if retpandexo:
-        ret['result'] = result
-        ret['outputfile'] = _outputpath + outputfilename
+
+    # Just save the whole thing -- overwrite the pandexo-generated output file:
+    retout = dict(wavelength=x, spectrum=y, uspectrum=e, planet=planet, pandexo_result=result, \
+                  outputfile=output_file, exo_dict=exo_dict, inst_dict=inst_dict)
+    f = open(output_file, 'w')
+    pk.dump(retout, f)
+    f.close()
+
     
-    if reddict:
+    if retpandexo:
+        ret['pandexo_result'] = result
+        ret['outputfile'] = output_file
+    
+    if retdict:
         ret['exo_dict'] = exo_dict
         ret['inst_dict'] = inst_dict
 
