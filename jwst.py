@@ -222,7 +222,7 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
     exo_dict['planet']['td_unit'] = 's'      
 
     if baseline is None:
-        baseline = exo_dict['planet']['transit_duration']
+        baseline = 2*exo_dict['planet']['transit_duration']
         print "No observation duration ('baseline') input, using 2 * T_14 (%i sec)" % baseline
         
     exo_dict['observation']['baseline'] = baseline
