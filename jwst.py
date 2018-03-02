@@ -43,7 +43,7 @@ _nexsciPlanetTable = _modulepath + '/nexsci_planets_20180123_ed.csv'
 
 """
 
-def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS', subarray=None, _modelspectrum=None, modelwave='um', ntransits=1, noise_floor=0., refband='k', plotres=30, mrmode='weiss2016', _outputpath='./', retpandexo=True, retdict=True):
+def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS', subarray=None, _modelspectrum=None, modelwave='um', ntransits=1, noise_floor=0., refband='k', plotres=30, mrmode='weiss2016', _outputpath='./', retpandexo=True, retdict=True, baseline=None):
     """Run a simulation of PandExo -- and avoid messing with scripts.
     
     INPUTS:
@@ -223,6 +223,8 @@ def run_pandexo(planetname='WASP-12 b', mode='transit', instrument = 'MIRI LRS',
 
     if baseline is None:
         baseline = exo_dict['planet']['transit_duration']
+        print "No observation duration ('baseline') input, using 2 * T_14 (%i sec)" % baseline
+        
     exo_dict['observation']['baseline'] = baseline
     exo_dict['observation']['baseline_unit'] = 'total'  
     
